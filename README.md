@@ -2,7 +2,7 @@
 
 The official implementation of the paper ***Mean Parity Fair Regression in RKHS***. This implementation is built upon https://github.com/steven7woo/fair_regression_reduction.
 
-In this fair_reg.py, we implement three method used in the paper including:
+In this fair_reg.py, we implement three methods used in the paper including:
 - MP_Fair_regression: Our method for achieving MP fairness or Covariance-based fairness
 - MP_Penalty_regression: A penalty-based method for achieving MP fairness or Covariance-based fairness
 - Fair_kernel_learning: A penalty-based method for achieving Covariance-based fairness
