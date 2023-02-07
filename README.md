@@ -18,7 +18,7 @@ In this fair_reg.py, we implement three methods used in the paper including:
 
 3. Run our demo notebook in your Jupyter Notebook Environment.
 
-For other baselines used in these paper, we refer users to their official implementations:
+For other baselines used in this paper, we refer users to their official implementations:
 - Nonconvex Regression with Fairness Constraints: https://github.com/jkomiyama/fairregresion
 - Reduction Based Algorithm: https://github.com/steven7woo/fair_regression_reduction
 
