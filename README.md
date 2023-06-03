@@ -23,3 +23,15 @@ For other baselines used in this paper, we refer users to their official impleme
 - Reduction Based Algorithm: https://github.com/steven7woo/fair_regression_reduction
 
 If you have any problem, please contact [Shaokui Wei](mailto::shaokuiwei@link.cuhk.edu.cn).
+
+If you find this repo useful, consider citing our paper
+```
+  @inproceedings{wei2023mean,
+  title={Mean Parity Fair Regression in RKHS},
+  author={Wei, Shaokui and Liu, Jiayin and Li, Bing and Zha, Hongyuan},
+  booktitle={International Conference on Artificial Intelligence and Statistics},
+  pages={4602--4628},
+  year={2023},
+  organization={PMLR}
+}
+```
