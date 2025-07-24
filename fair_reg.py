@@ -2,6 +2,7 @@ from sklearn.metrics.pairwise import pairwise_kernels
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pandas as pd
+from scipy.linalg import svd
 
 class MP_Fair_regression:
     '''
@@ -29,46 +30,41 @@ class MP_Fair_regression:
         self.K_s = self.kernel_s(self.s, self.s)
         self.lmd=lmd
 
+    def construct_P(self):
+
+        # Optimized version with less computation complexity, more numerical stable, and removing assumption/rely on kernerl_s.
+        # If you hope to see the initial implementation, please refer to the initial commit (https://github.com/shawkui/MP_Fair_Regression/commit/4b0a5d57a1669096b115a7b3a971d7518c065c50) in GitHub.
+
+        s_flatten = self.s.flatten()  # ensure s is 1D
+        n = len(s_flatten)
+        unique_values, inverse = np.unique(s_flatten, return_inverse=True)
+        m = len(unique_values)
+
+        B = np.full((m, n), -1 / n)  # initialize all entries to -1/n
+        self.B = B
+
+        for j in range(m):
+            indices = (inverse == j)
+            B[j, indices] += 1  
+        K_eigen = B.dot(self.K)
+
+        U, S, Vt = svd(K_eigen, full_matrices=True)
+        rank = (S > 1e-10).sum()
+        V_null = Vt[rank:].T
+        P = V_null @ V_null.T
+
+        self.m = rank
+        self.P = P
+
+        return P
+
     def fit(self):
-
-        # Centralized Kernel Matrix
-        H = np.eye(self.n)-1/self.n*np.ones((self.n, self.n))
-
-        K_b = H.dot(self.K.dot(H))
-        K_sb = H.dot(self.K_s.dot(H))
-
-        # Eigenvector Computation
-        K_eigen = K_sb.dot(K_b)
-        self.m=np.linalg.matrix_rank(K_eigen)
-        # print('New m: ', self.m)
-
-        eigvals, eigvecs = np.linalg.eig(K_eigen)
-        A = eigvecs[:, 0:self.m].real
-
-        # Uncentralization
-        A = H.dot(A)
-
-        # Gram-Schmidt Process
-        for i in range(self.m):
-            a_i = A[:, i:i+1]
-            for j in range(i):
-                a_j = A[:, j:j+1]
-                a_i = a_i-a_j*(a_j.T.dot(self.K).dot(a_i))
-            # Normalization
-            a_i = a_i/np.sqrt(a_i.T.dot(self.K).dot(a_i))
-            A[:, i:i+1] = a_i
-
-        # # The off-diagonal elements should be 0 and diagonal elements should be 1
-        # print(A.T.dot(self.K.dot(A)))
-
-        # Projection
-        P = np.eye(self.n)-A.dot(A.T).dot(self.K)
+        
+        P = self.construct_P()
 
         self.w_ = P.T.dot(self.K).dot(self.y)
-        self.w_ = np.linalg.pinv(P.T.dot(self.K).dot(self.K).dot(P)+self.lmd*P.T.dot(self.K).dot(P)).dot(self.w_)
+        self.w_ = np.linalg.pinv(P.T.dot(self.K).dot(self.K.T).dot(P)+self.lmd*P.T.dot(self.K).dot(P)).dot(self.w_)
         self.w_ = P.dot(self.w_)
-        self.A=A
-        self.P=P
         if self.kernel_xs.__name__=='linear_kernel':
             self.w_=self.x.T.dot(self.w_)
         return self.w_
@@ -79,6 +75,13 @@ class MP_Fair_regression:
         else:
             y_ =  self.kernel_xs(x_, self.x).dot(self.w_)
         return y_
+    
+    def validate(self):
+        # Centralized Kernel Matrix
+        disparity = self.B.dot(self.pred(self.x))
+        print('E(y|s)-E(y):', disparity)
+        return disparity
+
 
 class MP_Penalty_regression:
     '''
@@ -108,38 +111,39 @@ class MP_Penalty_regression:
         self.lmd = lmd
         self.eta = eta
 
+    def construct_P(self):
+
+        # Optimized version with less computation complexity, more numerical stable, and removing assumption/rely on kernerl_s.
+        # If you hope to see the initial implementation, please refer to the initial commit (https://github.com/shawkui/MP_Fair_Regression/commit/4b0a5d57a1669096b115a7b3a971d7518c065c50) in GitHub.
+
+        s_flatten = self.s.flatten()  # ensure s is 1D
+        n = len(s_flatten)
+        unique_values, inverse = np.unique(s_flatten, return_inverse=True)
+        m = len(unique_values)
+
+        B = np.full((m, n), -1 / n)  # initialize all entries to -1/n
+        self.B = B
+
+        for j in range(m):
+            indices = (inverse == j)
+            B[j, indices] += 1  
+        K_eigen = B.dot(self.K)
+
+        U, S, Vt = svd(K_eigen, full_matrices=True)
+        rank = (S > 1e-10).sum()
+        V_null = Vt[rank:].T
+        P = V_null @ V_null.T
+
+        self.m = rank
+        self.P = P
+
+        return P
+
     def fit(self):
+        P = self.construct_P()
+        A = np.eye(P.shape[0])-P
 
-        # Centralized Kernel Matrix
-        H = np.eye(self.n)-1/self.n*np.ones((self.n, self.n))
-
-        K_b = H.dot(self.K.dot(H))
-        K_sb = H.dot(self.K_s.dot(H))
-
-        # Eigenvector Computation
-        K_eigen = K_sb.dot(K_b)
-        self.m=np.linalg.matrix_rank(K_eigen)
-
-        eigvals, eigvecs = np.linalg.eig(K_eigen)
-        A = eigvecs[:, 0:self.m].real
-
-        # Uncentralization
-        A = H.dot(A)
-
-        # Gram-Schmidt Process
-        for i in range(self.m):
-            a_i = A[:, i:i+1]
-            for j in range(i):
-                a_j = A[:, j:j+1]
-                a_i = a_i-a_j*(a_j.T.dot(self.K).dot(a_i))
-            # Normalization
-            a_i = a_i/np.sqrt(a_i.T.dot(self.K).dot(a_i))
-            A[:, i:i+1] = a_i
-
-        # The off-diagonal elements should be 0 and diagonal elements should be 1
-        # print(A.T.dot(self.K.dot(A)))
-        
-        self.w_ =np.linalg.pinv(self.K.dot(self.K)+self.lmd*self.K+self.eta*(self.K.dot(A.dot(A.T)).dot(self.K))).dot(self.K).dot(self.y)
+        self.w_ =np.linalg.pinv(self.K.dot(self.K)+self.lmd*self.K+self.eta*(self.K.dot(A).dot(self.K))).dot(self.K).dot(self.y)
         self.A=A
         if self.kernel_xs.__name__=='linear_kernel':
             self.w_=self.x.T.dot(self.w_)
