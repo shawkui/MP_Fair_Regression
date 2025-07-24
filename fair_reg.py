@@ -15,7 +15,7 @@ class MP_Fair_regression:
     lmd: regularization parameter
     '''
 
-    def __init__(self, x, s, y, kernel_xs, kernel_s, lmd = 0):
+    def __init__(self, x, s, y, kernel_xs, kernel_s = None, lmd = 0):
         self.x = x
         self.s = s
         self.y = y
@@ -27,7 +27,6 @@ class MP_Fair_regression:
         self.kernel_xs = kernel_xs
 
         self.K = self.kernel_xs(self.x, self.x)
-        self.K_s = self.kernel_s(self.s, self.s)
         self.lmd=lmd
 
     def construct_P(self):
@@ -95,7 +94,7 @@ class MP_Penalty_regression:
     eta: penalty parameter
     '''
 
-    def __init__(self, x, s, y, kernel_xs, kernel_s, lmd = 0, eta = 0):
+    def __init__(self, x, s, y, kernel_xs, kernel_s = None, lmd = 0, eta = 0):
         self.x = x
         self.s = s
         self.y = y
@@ -107,7 +106,6 @@ class MP_Penalty_regression:
         self.kernel_xs = kernel_xs
 
         self.K = self.kernel_xs(self.x, self.x)
-        self.K_s = self.kernel_s(self.s, self.s)
         self.lmd = lmd
         self.eta = eta
 
